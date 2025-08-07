@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Blackwood Incident</title>
+<style>
+  :root{
+    --bg:#0d0f12;--panel:#14171b;--muted:#7b8591;--text:#e8edf3;--accent:#e87a64;--good:#4caf50;--bad:#f44336;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:linear-gradient(180deg,#0b0d10,#12151a 35%,#0b0d10);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #232830;background:#0b0e12;position:sticky;top:0;z-index:3}
+  header .title{font-weight:700;letter-spacing:.5px}
+  header .status{display:flex;gap:12px;align-items:center;font-size:14px;color:var(--muted)}
+  header .chip{padding:4px 8px;border:1px solid #2a313a;border-radius:999px;background:#12161b}
+
+  main{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;height:calc(100% - 56px);padding:12px}
+  #scene{background:#0b0d10;border:1px solid #22272f;border-radius:14px;padding:16px;display:flex;flex-direction:column;}
+  #sceneCanvas{flex:1;display:flex;align-items:center;justify-content:center;border:1px dashed #262c36;border-radius:10px;background:radial-gradient(1000px 300px at 50% 120%,#0f1318 0%,#0b0d10 60%);} 
+  #sceneArt{width:100%;max-width:720px;min-height:260px;display:grid;place-items:center;color:#738196}
+  #sceneMeta{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+  #roomName{font-weight:700;font-size:18px}
+  #nav{display:flex;flex-wrap:wrap;gap:6px}
+  .btn{background:#171b21;border:1px solid #272f3a;color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer;font-size:14px}
+  .btn:hover{border-color:#394555;background:#11151a}
+  .btn.primary{border-color:#2e3743;background:#1b2129}
+  .btn.accent{border-color:#7a473d;background:#221311;color:#ffd5cd}
+
+  #ui{display:grid;grid-template-rows:auto 1fr auto;gap:10px;border:1px solid #22272f;border-radius:14px;padding:12px;background:var(--panel)}
+  #log{height:160px;overflow:auto;background:#0f1318;border:1px solid #222a33;border-radius:10px;padding:10px;font-size:14px}
+  #actions{display:flex;flex-wrap:wrap;gap:8px}
+
+  #inventory{display:flex;gap:8px;flex-wrap:wrap;min-height:64px;padding:8px;border:1px dashed #2d3642;border-radius:12px;background:#0f1318}
+  .item{min-width:54px;min-height:54px;display:grid;place-items:center;background:#1a2028;border:1px solid #2a3441;border-radius:10px;color:#cbd5e1;font-size:12px;cursor:grab}
+  .item:active{cursor:grabbing}
+
+  #notebook{height:180px;overflow:auto;border:1px dashed #2d3642;border-radius:10px;padding:8px;background:#0f1318}
+  #notebook h4{margin:6px 0 4px 0;color:#96a3b6}
+  #notebook ul{margin:0 0 8px 16px}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,10,.65);z-index:10}
+  .modal.active{display:flex}
+  .card{width:min(720px,92vw);background:#0f1318;border:1px solid #293240;border-radius:14px;box-shadow:0 12px 48px rgba(0,0,0,.55)}
+  .card header{position:unset;border:0;padding:14px 16px;background:#10141a;border-bottom:1px solid #242c37}
+  .card .content{padding:16px}
+
+  /* Puzzles */
+  .dropzone{width:90px;height:90px;border:2px dashed #556170;border-radius:10px;display:grid;place-items:center;margin:8px}
+  .puzzle-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .button-grid{display:grid;grid-template-columns:repeat(4,56px);gap:8px}
+  .grid-btn{height:56px;border-radius:8px;background:#1a2028;border:1px solid #2a3441;color:#cbd5e1;cursor:pointer}
+  .grid-btn.active{outline:2px solid var(--accent)}
+
+  /* Dialogue */
+  .dialogue{background:#0f1318;border:1px solid #293240;border-radius:12px;padding:12px;max-height:45vh;overflow:auto}
+  .utter{margin:6px 0}
+  .utter .name{color:#9db0c7;font-weight:700;margin-right:6px}
+  .utter .you{color:#d6f5d6}
+  .optline{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+  /* Toast */
+  #toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#121820;border:1px solid #2a3340;border-radius:999px;padding:8px 14px;display:none}
+  #toast.show{display:block}
+
+  /* Responsive */
+  @media (max-width: 980px){
+    main{grid-template-columns:1fr;grid-auto-rows:auto}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="title">The Blackwood Incident</div>
+  <div class="status">
+    <div class="chip">Time left: <span id="timeLeft">6:00</span></div>
+    <div class="chip">Clues: <span id="clueCount">0</span></div>
+    <div class="chip">Room: <span id="roomChip">—</span></div>
+  </div>
+</header>
+<main>
+  <section id="scene">
+    <div id="sceneCanvas">
+      <div id="sceneArt">(room art)</div>
+    </div>
+    <div id="sceneMeta">
+      <div id="roomName">—</div>
+      <div id="nav"></div>
+    </div>
+  </section>
+
+  <section id="ui">
+    <div id="log"></div>
+    <div id="actions"></div>
+    <div>
+      <h4 style="margin:6px 0">Inventory (drag items into puzzles)</h4>
+      <div id="inventory"></div>
+      <div id="notebook" style="margin-top:10px">
+        <h4>Notebook</h4>
+        <ul id="notes"></ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="modal" class="modal" aria-hidden="true">
+  <div class="card" role="dialog" aria-modal="true">
+    <header>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <div id="modalTitle">Puzzle</div>
+        <button id="closeModal" class="btn">Close</button>
+      </div>
+    </header>
+    <div class="content" id="modalBody"></div>
+  </div>
+</div>
+
+<div id="toast">Saved.</div>
+
+<script>
+/*****************
+ * GAME STATE
+ *****************/
+const suspects = [
+  { id:'graves', name:'Dr. Eleanor Graves', trait:'Physician; knows chemicals/poisons', alibi:'In the library cataloging journals', motive:'Victim cut funding to her clinic', item:'Medical Vial' },
+  { id:'reed', name:'Mr. Tobias Reed', trait:'Lawyer; inheritance access', alibi:'In the study reviewing a will draft', motive:'Debt + inheritance clause', item:'Legal Ledger' },
+  { id:'clara', name:'Clara Blackwood', trait:'Widow; fragile and erratic', alibi:'In her bedroom resting', motive:'Abusive marriage rumor', item:'Blood-stained Watch' },
+  { id:'kane', name:'Victor Kane', trait:'Gardener; tools & grounds', alibi:'In the cellar checking fuse box', motive:'Victim planned to fire him', item:'Monogrammed Key' },
+  { id:'marion', name:'Marion Price', trait:'Housemaid; knows passages', alibi:'Setting the table in dining room', motive:'Threatened with dismissal', item:'Servant Ledger' }
+];
+
+// Random killer & method for this run
+const methods = [
+  { id:'poison', label:'Poison', hint:'Bitter almond scent, lab glass, dosage notes' },
+  { id:'blunt', label:'Blunt Force', hint:'Dented candlestick, impact traces' },
+  { id:'strangle', label:'Strangulation', hint:'Frayed cord fibers, bruising pattern' }
+];
+
+const RNG = (seed => () => (seed = (seed * 9301 + 49297) % 233280) / 233280)(Math.floor(Math.random()*1e6));
+const pick = arr => arr[Math.floor(RNG()*arr.length)];
+const killer = pick([...suspects]);
+const method = pick([...methods]);
+
+// Rooms graph
+const rooms = {
+  hallway: {name:'Front Hallway', art:'An arched, dim corridor. Portrait eyes seem to follow you.', exits:['study','library','dining'], actions:[
+    {id:'examine_table', label:'Examine side table', fn:() => findTornNoteHalf()},
+    {id:'listen', label:'Listen…', fn:() => log("You hear distant thunder and the faint ticking of a clock.")}
+  ]},
+  study: {name:'Study', art:'Book-lined walls. A safe hangs behind a crooked painting.', exits:['hallway'], actions:[
+    {id:'safe', label:'Inspect wall safe', fn:() => openSafePuzzle()},
+    {id:'painting', label:'Adjust painting', fn:() => { log('The painting tilts, revealing faint scratch marks.'); addNote('Scratches around the safe suggest recent use.'); advanceTime(2);} }
+  ]},
+  library: {name:'Library', art:'Ladders, dust motes, and rows of medical journals.', exits:['hallway','secretpassage','attic'], locked:true, lockMsg:'A heavy chain bars the door from this side.', actions:[
+    {id:'chain', label:'Inspect chained door', fn:() => { if(!state.flags.haveBoltCutters){ log('A stout chain with a padlock. You need something to cut it.'); } else { log('You cut the chain. The library opens.'); rooms.library.locked=false; addNote('Entry chain cut open.'); } }},
+  ]},
+  dining: {name:'Dining Room', art:'A long table with name cards. One chair toppled.', exits:['hallway','kitchen'], actions:[
+    {id:'seating', label:'Examine seating chart', fn:() => openSeatingPuzzle()},
+    {id:'card', label:'Read name cards', fn:() => { log('You note mismatched place cards. Someone swapped seats.'); addNote('Place cards altered to change proximity to the victim.'); advanceTime(1);} }
+  ]},
+  kitchen: {name:'Kitchen', art:'Brass pans, a lingering bitter scent near the sink.', exits:['dining','cellar'], actions:[
+    {id:'bottles', label:'Inspect bottles', fn:() => inspectBottles()},
+    {id:'drawer', label:'Open utensil drawer', fn:() => { if(!hasItem('Bolt Cutters')) { addItem('Bolt Cutters'); addNote('Found bolt cutters in the kitchen drawer.'); log('You found Bolt Cutters.'); } else { log('Utensils clatter. Nothing new.'); } }}
+  ]},
+  cellar: {name:'Cellar', art:'Cold stone and humming electrics. A fuse panel flickers.', exits:['kitchen'], actions:[
+    {id:'panel', label:'Check fuse panel', fn:() => openFusePuzzle()},
+    {id:'footprints', label:'Look for footprints', fn:() => { log('Dusty outlines lead to a locked hatch.'); addNote('Footprints to a hatch imply a recent visit.'); advanceTime(1);} }
+  ]},
+  secretpassage: {name:'Secret Passage', art:'A narrow, dusty crawlspace behind shelves.', exits:['library','attic'], actions:[
+    {id:'scratches', label:'Examine scrape marks', fn:() => { log('Fresh scrapes: furniture was moved recently.'); addNote('Secret passage used tonight.'); advanceTime(1);} }
+  ]},
+  attic: {name:'Attic', art:'Cobwebs, trunks, and a howling draft. A final place to confront truth.', exits:['library'], actions:[
+    {id:'confront', label:'Confront a suspect', fn:() => openAccuse()},
+    {id:'trunk', label:'Search old trunk', fn:() => { if(!hasItem('Candlestick')){ addItem('Candlestick'); addNote('Heavy candlestick recovered.'); log('You take a heavy candlestick.'); } else { log('Just moth-eaten linens.'); } }}
+  ]}
+};
+
+const state = {
+  room:'hallway',
+  minutes: 360, // 6 hours
+  clues:[],
+  notes:[],
+  inventory:[],
+  flags:{ haveNote:false, haveKey:false, safeOpened:false, libraryOpen:false, haveBoltCutters:false },
+  dialogueMemory:{}
+};
+
+/*****************
+ * UTILITIES
+ *****************/
+function log(msg){
+  const el=document.getElementById('log');
+  const line=document.createElement('div');
+  line.textContent=msg; el.appendChild(line); el.scrollTop=el.scrollHeight;
+}
+function addNote(text){ if(!state.notes.includes(text)){ state.notes.push(text); renderNotes(); save(); } }
+function addClue(id,label){ if(!state.clues.find(c=>c.id===id)){ state.clues.push({id,label}); renderClues(); addNote(`Clue added: ${label}`); save(); } }
+function addItem(label){ if(!hasItem(label)){ state.inventory.push(label); renderInventory(); save(); if(label==='Bolt Cutters'){ state.flags.haveBoltCutters=true; } } }
+function hasItem(label){ return state.inventory.includes(label); }
+function advanceTime(min){ state.minutes=Math.max(0,state.minutes-min); renderHeader(); if(state.minutes===0){ gameOver('time'); } }
+function fmtTime(m){ const h=Math.floor(m/60), mm=String(m%60).padStart(2,'0'); return `${h}:${mm}`; }
+function save(){ try{ localStorage.setItem('blackwood_save', JSON.stringify({state,killer,method})); toast('Saved'); }catch(e){} }
+function load(){ try{ const d=JSON.parse(localStorage.getItem('blackwood_save')); if(!d) return; Object.assign(state, d.state); Object.assign(gameSecrets, {killer:d.killer, method:d.method}); }catch(e){} }
+function reset(){ localStorage.removeItem('blackwood_save'); location.reload(); }
+function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),900); }
+
+const gameSecrets = {killer, method};
+
+/*****************
+ * RENDERING
+ *****************/
+function render(){
+  const r=rooms[state.room];
+  document.getElementById('roomName').textContent=r.name;
+  document.getElementById('roomChip').textContent=r.name;
+  document.getElementById('sceneArt').textContent=r.art;
+  // nav
+  const nav=document.getElementById('nav'); nav.innerHTML='';
+  r.exits.forEach(e=>{
+    const dest=rooms[e];
+    const btn=document.createElement('button');
+    btn.className='btn';
+    btn.textContent=dest.name;
+    btn.onclick=()=>{
+      if(dest.locked){ log(dest.lockMsg||'Locked.'); return; }
+      state.room=e; render(); advanceTime(5);
+    };
+    nav.appendChild(btn);
+  });
+  // actions
+  const actions=document.getElementById('actions'); actions.innerHTML='';
+  r.actions.forEach(a=>{
+    const b=document.createElement('button');
+    b.className='btn primary'; b.textContent=a.label; b.onclick=a.fn; actions.appendChild(b);
+  });
+}
+function renderHeader(){
+  document.getElementById('timeLeft').textContent=fmtTime(state.minutes);
+  renderClues();
+}
+function renderClues(){ document.getElementById('clueCount').textContent=state.clues.length; }
+function renderNotes(){ const ul=document.getElementById('notes'); ul.innerHTML=''; state.notes.forEach(n=>{ const li=document.createElement('li'); li.textContent=n; ul.appendChild(li); }); }
+function renderInventory(){
+  const inv=document.getElementById('inventory'); inv.innerHTML='';
+  state.inventory.forEach((name,i)=>{
+    const it=document.createElement('div'); it.className='item'; it.textContent=name; it.draggable=true; it.dataset.item=name;
+    it.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain', name); });
+    inv.appendChild(it);
+  });
+}
+
+/*****************
+ * PUZZLES
+ *****************/
+function openModal(title, bodyBuilder){
+  document.getElementById('modalTitle').textContent=title;
+  const body=document.getElementById('modalBody'); body.innerHTML='';
+  bodyBuilder(body);
+  const modal=document.getElementById('modal'); modal.classList.add('active'); modal.setAttribute('aria-hidden','false');
+}
+function closeModal(){ const modal=document.getElementById('modal'); modal.classList.remove('active'); modal.setAttribute('aria-hidden','true'); }
+
+document.getElementById('closeModal').onclick=closeModal;
+
+// Study Safe: requires Torn Note Half dropped into slot, then enter 3-symbol code
+function openSafePuzzle(){
+  openModal('Wall Safe', body=>{
+    const p=document.createElement('p'); p.textContent='A thin slot and a 3-symbol dial. Drag the Torn Note Half into the slot, then set the code.'; body.appendChild(p);
+    const row=document.createElement('div'); row.className='puzzle-row'; body.appendChild(row);
+
+    const dz=document.createElement('div'); dz.className='dropzone'; dz.textContent='Slot'; dz.addEventListener('dragover',e=>e.preventDefault());
+    dz.addEventListener('drop', e=>{
+      e.preventDefault(); const item=e.dataTransfer.getData('text/plain');
+      if(item==='Torn Note Half'){ dz.textContent='Inserted'; dz.style.borderColor='var(--good)'; dz.dataset.inserted='1'; addNote('Inserted the torn note half into the safe.'); }
+      else toast('That doesn\'t fit.');
+    });
+    row.appendChild(dz);
+
+    const codeRow=document.createElement('div'); codeRow.className='puzzle-row'; body.appendChild(codeRow);
+    const choices=['♦','●','■','▲','★'];
+    const secret = ['●','★','■']; // static hint; could randomize & hint via library
+    const selects=[];
+    for(let i=0;i<3;i++){
+      const sel=document.createElement('select');
+      choices.forEach(ch=>{ const o=document.createElement('option'); o.value=ch; o.textContent=ch; sel.appendChild(o); });
+      codeRow.appendChild(sel); selects.push(sel);
+    }
+    const go=document.createElement('button'); go.className='btn accent'; go.textContent='Unlock';
+    go.onclick=()=>{
+      const ok = dz.dataset.inserted==='1' && selects[0].value===secret[0] && selects[1].value===secret[1] && selects[2].value===secret[2];
+      if(ok){
+        closeModal();
+        if(!state.flags.safeOpened){ state.flags.safeOpened=true; addItem('Blood-stained Watch'); addClue('watch','Blood-stained Watch from the safe'); addNote('Safe opened; watch recovered.'); log('Inside you find a Blood-stained Watch and scattered documents.'); advanceTime(8); }
+      } else { toast('Something\'s wrong. Do you have the note?'); }
+    };
+    body.appendChild(go);
+  });
+}
+
+// Dining seating puzzle: toggle buttons to match correct seating order hint
+function openSeatingPuzzle(){
+  openModal('Seating Chart', body=>{
+    const p=document.createElement('p'); p.textContent='Four seats near the victim were swapped. Arrange the initials (C, G, R, M) to match the hint: "The widow refused to sit by the doctor; the lawyer sat opposite the maid."'; body.appendChild(p);
+    const grid=document.createElement('div'); grid.className='button-grid'; body.appendChild(grid);
+    const initials=['C','G','R','M'];
+    const slots = new Array(4).fill(null).map((_,i)=>{
+      const b=document.createElement('button'); b.className='grid-btn'; b.textContent='—'; b.dataset.index=i; grid.appendChild(b); return b;
+    });
+    const picker=document.createElement('div'); picker.className='optline'; body.appendChild(picker);
+    initials.forEach(ch=>{
+      const b=document.createElement('button'); b.className='btn'; b.textContent=ch; b.onclick=()=>{ const empty=slots.find(s=>s.textContent==='—'); if(empty){ empty.textContent=ch; b.disabled=true; } }; picker.appendChild(b);
+    });
+    const reset=document.createElement('button'); reset.className='btn'; reset.textContent='Reset'; reset.onclick=()=>{ slots.forEach(s=>s.textContent='—'); [...picker.children].forEach(c=>c.disabled=false); }; body.appendChild(reset);
+    const okBtn=document.createElement('button'); okBtn.className='btn accent'; okBtn.textContent='Confirm'; okBtn.onclick=()=>{
+      const guess=slots.map(s=>s.textContent).join('');
+      const correct='RMCG'; // example solution satisfying the hint
+      if(guess===correct){ closeModal(); addClue('seating','Correct seating pattern near victim'); addNote('Seating shows someone engineered proximity.'); log('You decode the seating: someone moved cards to sit closer.'); advanceTime(6); }
+      else toast('That arrangement violates the hint.');
+    }; body.appendChild(okBtn);
+  });
+}
+
+// Kitchen poison identification
+function inspectBottles(){
+  openModal('Bottle Rack', body=>{
+    const p=document.createElement('p'); p.textContent='Several brown bottles. One smells faintly of bitter almond.'; body.appendChild(p);
+    const list=document.createElement('div'); list.className='optline'; body.appendChild(list);
+    const opts=['Vanilla Extract','Cleaning Ammonia','Cyanide Tincture','Vinegar'];
+    opts.forEach(o=>{
+      const b=document.createElement('button'); b.className='btn'; b.textContent=o; b.onclick=()=>{
+        if(o==='Cyanide Tincture'){
+          addClue('poison','Traces of cyanide present in kitchen');
+          addItem('Medical Vial');
+          addNote('Found a vial with traces consistent with cyanide.');
+          log('You carefully bag a Medical Vial with cyanide traces.');
+          closeModal(); advanceTime(5);
+        } else { toast('That doesn\'t match the almond scent.'); }
+      }; list.appendChild(b);
+    });
+  });
+}
+
+// Cellar fuse sequence puzzle
+function openFusePuzzle(){
+  openModal('Fuse Panel', body=>{
+    const p=document.createElement('p'); p.textContent='Restore power by flipping the correct 5-switch sequence. Hint found in notes: odd-even pattern ending with main.'; body.appendChild(p);
+    const row=document.createElement('div'); row.className='button-grid'; body.appendChild(row);
+    const switches=[1,2,3,4,5].map(i=>{
+      const b=document.createElement('button'); b.className='grid-btn'; b.textContent='S'+i; b.dataset.on='0'; b.onclick=()=>{ b.dataset.on=b.dataset.on==='0'?'1':'0'; b.classList.toggle('active'); };
+      row.appendChild(b); return b;
+    });
+    const go=document.createElement('button'); go.className='btn accent'; go.textContent='Apply'; go.onclick=()=>{
+      const pattern=switches.map((b,i)=>b.dataset.on==='1'?i+1:null).filter(Boolean).join('');
+      const correct='13545'; // odd-even pattern, repeats 5 as main
+      if(pattern===correct){ addClue('power','Fuse pattern restored; someone tampered earlier'); addNote('Fuses were intentionally tripped.'); log('Power stabilizes. The cellar hum evens out.'); closeModal(); advanceTime(4); }
+      else toast('Wrong order. Try the odd-even hint.');
+    }; body.appendChild(go);
+  });
+}
+
+/*****************
+ * DISCOVERY & SETUP
+ *****************/
+function findTornNoteHalf(){
+  if(!state.flags.haveNote){
+    state.flags.haveNote=true; addItem('Torn Note Half'); addNote('Recovered a torn note half from the hallway table.'); log('You pocket the Torn Note Half.'); advanceTime(2);
+  } else if(!rooms.library.locked && !state.flags.haveKey){
+    state.flags.haveKey=true; addItem('Monogrammed Key'); addNote('Found a Monogrammed Key taped under the drawer.'); log('A key with initials falls from the underside of the drawer.'); advanceTime(1);
+  } else {
+    log('Nothing else on the table.');
+  }
+}
+
+/*****************
+ * DIALOGUE & ACCUSATION
+ *****************/
+function openAccuse(){
+  openModal('Final Accusation', body=>{
+    const p=document.createElement('p'); p.textContent='Choose a suspect and present your core evidence. If you are wrong, the night will end badly.'; body.appendChild(p);
+
+    const whoSel=document.createElement('select'); suspects.forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; whoSel.appendChild(o); }); body.appendChild(whoSel);
+
+    const evidenceSel=document.createElement('select'); const evOpts=state.clues.map(c=>c.label); evOpts.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; evidenceSel.appendChild(o); }); if(evOpts.length===0){ const o=document.createElement('option'); o.value='none'; o.textContent='(no evidence)'; evidenceSel.appendChild(o); } body.appendChild(evidenceSel);
+
+    const go=document.createElement('button'); go.className='btn accent'; go.textContent='Accuse'; go.onclick=()=>{
+      const who=whoSel.value; const ev=evidenceSel.value;
+      resolveAccusation(who, ev);
+    }; body.appendChild(go);
+
+    const hint=document.createElement('div'); hint.style.marginTop='10px'; hint.style.color='#9db0c7';
+    hint.textContent=`Method this run left signs of: ${gameSecrets.method.hint}`; body.appendChild(hint);
+  });
+}
+
+function resolveAccusation(who, evidence){
+  closeModal();
+  const correctSuspect = who===gameSecrets.killer.id;
+  const evidenceScore = scoreEvidence();
+  if(correctSuspect && evidenceScore>=3){ winEnding('true'); }
+  else if(correctSuspect){ winEnding('partial'); }
+  else { loseEnding('wrong'); }
+}
+
+function scoreEvidence(){
+  let s=0;
+  // Simple scoring model: method-specific and suspect-item-specific clues
+  const havePoison = state.clues.some(c=>c.id==='poison');
+  if(gameSecrets.method.id==='poison' && havePoison) s++;
+  if(state.flags.safeOpened) s++;
+  if(state.clues.some(c=>c.id==='seating')) s++;
+  if(state.clues.some(c=>c.id==='power')) s++;
+  if(hasItem('Monogrammed Key')) s++;
+  if(hasItem('Medical Vial')) s++;
+  if(hasItem('Candlestick') && gameSecrets.method.id==='blunt') s++;
+  return s;
+}
+
+function winEnding(type){
+  const t = type==='true' ? 'TRUE ENDING' : 'PARTIAL JUSTICE';
+  openModal(t, body=>{
+    const h=document.createElement('h3'); h.textContent = type==='true' ? 'You solved the Blackwood Incident.' : 'You caught the killer, but some questions remain.'; body.appendChild(h);
+    const p=document.createElement('p'); p.innerHTML = `Killer: <b>${gameSecrets.killer.name}</b><br>Method: <b>${gameSecrets.method.label}</b>`; body.appendChild(p);
+    const again=document.createElement('button'); again.className='btn'; again.textContent='Play Again (new killer)'; again.onclick=()=>reset(); body.appendChild(again);
+  });
+}
+
+function loseEnding(reason){
+  openModal('BAD ENDING', body=>{
+    const p=document.createElement('p'); p.textContent = reason==='time' ? 'Dawn breaks and the police arrive, but the killer slips away into the storm.' : 'Your accusation shatters. A cold smile tells you you were wrong.'; body.appendChild(p);
+    const reveal=document.createElement('p'); reveal.innerHTML = `The killer was <b>${gameSecrets.killer.name}</b>; method: <b>${gameSecrets.method.label}</b>.`; body.appendChild(reveal);
+    const again=document.createElement('button'); again.className='btn'; again.textContent='Try Again'; again.onclick=()=>reset(); body.appendChild(again);
+  });
+}
+
+function gameOver(kind){
+  loseEnding(kind);
+}
+
+/*****************
+ * INIT
+ *****************/
+function firstTimeSetup(){
+  // Lock library initially; can be opened via bolt cutters
+  rooms.library.locked = true;
+  // Place a hint to open library once bolt cutters obtained
+  addNote('A chain bars the library. Perhaps something in the kitchen can cut it.');
+}
+
+function attachGlobalShortcuts(){
+  window.addEventListener('keydown', (e)=>{
+    if(e.key==='s' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); save(); }
+    if(e.key==='Escape'){ const m=document.getElementById('modal'); if(m.classList.contains('active')) closeModal(); }
+  });
+}
+
+(function start(){
+  firstTimeSetup();
+  renderHeader();
+  render();
+  renderInventory();
+  renderNotes();
+  attachGlobalShortcuts();
+  log('You arrive at Blackwood Manor as a storm rages outside. The host is dead. You have until dawn.');
+  log(`There are ${suspects.length} suspects. Gather clues and confront the killer in the attic.`);
+})();
+</script>
+</body>
+</html>
