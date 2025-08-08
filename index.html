@@ -3,43 +3,39 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Hunted: House Hideout v2</title>
+<title>Hunted: House Hideout v2.1</title>
 <style>
-  :root{
-    --bg:#0b0f14; --panel:#121923; --line:#233042; --text:#e9eef5; --muted:#a7b4c6; --accent:#e87a64; --good:#50d890; --bad:#ff6b6b;
-  }
+  :root{ --bg:#0b0f14; --panel:#121923; --line:#3a4a62; --text:#e9eef5; --muted:#a7b4c6; --accent:#e87a64; --good:#50d890; --bad:#ff6b6b; }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0;background:radial-gradient(1000px 600px at 50% -200px,#0f1520,#0b0f14);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
-
-  /* Top overlay */
-  .topbar{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:linear-gradient(180deg,rgba(10,14,20,.9),rgba(10,14,20,.55));backdrop-filter:saturate(1.2) blur(6px);border-bottom:1px solid #1c2635;z-index:10}
-  .brand{font-weight:800;letter-spacing:.4px}
+  body{margin:0;background:#0c121a;color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
+  .topbar{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:linear-gradient(180deg,rgba(10,14,20,.9),rgba(10,14,20,.6));backdrop-filter:saturate(1.2) blur(6px);border-bottom:1px solid #1c2635;z-index:10}
+  .brand{font-weight:800}
   .cluster{display:flex;gap:8px;align-items:center}
   .chip{border:1px solid var(--line);background:#0f1620;border-radius:999px;padding:6px 10px;color:#c7d4e6;font-size:13px}
   .btn{background:#121a25;border:1px solid #2a394d;color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
   .btn.ghost{background:transparent}
   .btn.accent{background:#231311;border-color:#6d4037;color:#ffdcd4}
 
-  /* Fullscreen board */
+  /* Board fills all under the topbar */
   #board{position:fixed;inset:56px 0 0 0;display:grid;place-items:center}
-  #grid{width:min(96vmin,1080px);height:min(96vmin,1080px);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:12px;padding:12px}
-  .cell{position:relative;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#111924,#0e151d);display:grid;place-items:center;overflow:hidden;transition:transform .08s ease}
-  .cell:hover{transform:translateY(-1px)}
-  .cell.disabled{opacity:.35;filter:grayscale(50%);cursor:not-allowed}
-  .cell .label{position:absolute;bottom:8px;left:8px;font-size:12px;color:#b7c5d8;background:#0d141cbb;padding:3px 6px;border-radius:6px;border:1px solid #1f2a3a}
-  .you{outline:2px solid var(--good);box-shadow:inset 0 0 0 2px #1d2a22}
+  #grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:14px;padding:14px;background:#0f1620;border:2px solid #41526b;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+  .cell{position:relative;border:2px solid #506685;border-radius:16px;background:linear-gradient(180deg,#162233,#0f1824);display:grid;place-items:center;overflow:hidden;transition:transform .08s ease, filter .2s}
+  .cell:hover{transform:translateY(-2px)}
+  .cell.disabled{opacity:.28;filter:grayscale(70%);cursor:not-allowed}
+  .label{position:absolute;bottom:8px;left:8px;font-size:13px;color:#eef5ff;background:#101a26d1;padding:4px 8px;border-radius:8px;border:1px solid #28415a}
+  .you{outline:3px solid var(--good);box-shadow:inset 0 0 0 2px #1d2a22}
   .ctl{position:absolute;top:8px;right:8px;display:flex;gap:6px}
   .cell button{font-size:12px;padding:6px 8px;border-radius:8px}
   .mini{border:1px solid #33455e;background:#162232;color:#d6e3f7}
   .mini[disabled]{opacity:.5}
 
-  /* Murderer animation */
-  #murderer{position:absolute;width:38px;height:38px;border-radius:50%;background:#192231;border:1px solid #2d3f59;display:grid;place-items:center;box-shadow:0 6px 22px rgba(0,0,0,.45);z-index:6;transform:translate(-50%,-50%)}
-  #murderer span{font-size:18px}
-  .blast{position:absolute;inset:0;pointer-events:none;background:radial-gradient(220px 220px at var(--x,50%) var(--y,50%),rgba(255,120,80,.9),transparent 70%);mix-blend-mode:screen;opacity:0;animation:flash .55s ease-out}
+  /* Murderer + FX */
+  #murderer{position:absolute;width:44px;height:44px;border-radius:50%;background:#1b2433;border:2px solid #3b4f6b;display:grid;place-items:center;box-shadow:0 6px 22px rgba(0,0,0,.45);z-index:6;transform:translate(-50%,-50%)}
+  #murderer span{font-size:22px}
+  .blast{position:absolute;inset:0;pointer-events:none;background:radial-gradient(240px 240px at var(--x,50%) var(--y,50%),rgba(255,120,80,.92),transparent 70%);mix-blend-mode:screen;opacity:0;animation:flash .6s ease-out}
   @keyframes flash{0%{opacity:.95}100%{opacity:0}}
-  .boom{animation:boom .65s ease-out}
+  .boom{animation:boom .7s ease-out}
   @keyframes boom{0%{filter:none}30%{filter:brightness(1.8) saturate(1.2)}60%{transform:scale(1.03);}100%{filter:grayscale(65%)} }
 
   /* Center alert */
@@ -49,7 +45,7 @@
   .card header{padding:12px 14px;border-bottom:1px solid #223044}
   .card .content{padding:14px}
 
-  /* Notebook & Log (slide panels) */
+  /* Notebook & Log */
   #notebookWrap{position:fixed;left:12px;bottom:12px;width:min(420px,92vw);z-index:9}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
   .fold{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}
@@ -57,10 +53,238 @@
   .folded .body{display:none}
   #notebook{transition:transform .25s ease}
   #notebook.hide{transform:translateY(110%)}
-
   #logWrap{position:fixed;right:12px;bottom:12px;width:min(420px,92vw);z-index:9}
   #log{max-height:220px;overflow:auto;background:#0f151d;border:1px dashed #2a3648;border-radius:10px;padding:8px;font-size:13px}
 
+  /* Settings */
+  #settings{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,8,12,.55);z-index:18}
+  #settings.active{display:flex}
+
+  /* Timer */
+  #timerBadge{position:fixed;left:50%;top:10px;transform:translateX(-50%);background:#0f1620;border:1px solid var(--line);padding:6px 12px;border-radius:999px;z-index:11}
+  .pulse{animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,122,100,.6)}70%{box-shadow:0 0 0 12px rgba(232,122,100,0)}100%{box-shadow:0 0 0 0 rgba(232,122,100,0)}}
+
+  /* Debug badge */
+  #debug{position:fixed;left:8px;top:56px;background:#0f1620;border:1px solid #3a4a62;color:#cbd7ea;padding:4px 8px;border-radius:8px;font-size:12px;z-index:12}
+  #debug.bad{background:#2b1416;border-color:#7a3b3f}
+
+  @media(max-width: 840px){ #notebookWrap,#logWrap{width:calc(100vw - 24px)} }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="cluster"><div class="brand">Hunted</div><button id="restart" class="btn">↻ Restart</button></div>
+    <div class="cluster">
+      <span id="timerBadge" class="chip">Time: <b id="timer">—</b></span>
+      <button id="settingsBtn" class="btn ghost">⚙︎</button>
+      <label class="chip"><input type="checkbox" id="soundToggle" checked/> Sound</label>
+    </div>
+  </div>
+  <div id="debug">Grid: —</div>
+
+  <div id="board">
+    <div id="grid"></div>
+    <div id="murderer" style="display:none"><span>🗡️</span></div>
+  </div>
+
+  <!-- Notebook (left) -->
+  <div id="notebookWrap">
+    <div id="notebook" class="panel">
+      <div class="fold" id="nbFold"><h4>Notebook</h4><button class="btn mini">Hide</button></div>
+      <div class="body" id="nbBody">—</div>
+    </div>
+  </div>
+
+  <!-- Log (right) -->
+  <div id="logWrap">
+    <div class="panel">
+      <div class="fold" id="logFold"><h4>Round Log</h4><button class="btn mini">Toggle</button></div>
+      <div id="log" class="body"></div>
+    </div>
+  </div>
+
+  <!-- Center Alert -->
+  <div id="centerAlert">
+    <div class="card">
+      <header><strong>Explosion</strong></header>
+      <div class="content">
+        <div id="alertMsg" style="margin-bottom:12px">A room was destroyed.</div>
+        <div style="display:flex;justify-content:flex-end"><button id="alertOk" class="btn accent">Continue</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings">
+    <div class="card">
+      <header><strong>Settings</strong></header>
+      <div class="content">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+          <label>Difficulty
+            <select id="difficulty">
+              <option>Easy</option>
+              <option selected>Normal</option>
+              <option>Hard</option>
+            </select>
+          </label>
+          <label style="margin-left:10px"><input type="checkbox" id="reduced"/> Reduced motion</label>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px"><button id="closeSettings" class="btn">Close</button></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ---------- CONFIG ----------
+const ROOM_LIST = [
+  {id:'living',   name:'Living Room',  x:0,y:0},
+  {id:'kitchen',  name:'Kitchen',      x:1,y:0},
+  {id:'bath',     name:'Bathroom',     x:2,y:0},
+  {id:'garage',   name:'Garage',       x:0,y:1},
+  /* center empty */
+  {id:'bed',      name:'Bedroom',      x:2,y:1},
+  {id:'dining',   name:'Dining',       x:0,y:2},
+  {id:'game',     name:'Game Room',    x:1,y:2},
+  {id:'patio',    name:'Outside Patio',x:2,y:2},
+];
+const ADJ = (a,b)=> (Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1);
+const DIFF = {
+  'Easy':   {turnTimer:null, chainStart:Infinity, chainPct:0},
+  'Normal': {turnTimer:12,    chainStart:4,       chainPct:0.05},
+  'Hard':   {turnTimer:8,     chainStart:3,       chainPct:0.08}
+};
+const MOVE_HEAT = 0.15;
+
+// ---------- STATE ----------
+let state = { active:new Set(ROOM_LIST.map(r=>r.id)), player:null, round:1, movedThisTurn:false, difficulty:'Normal', weights:{}, timer:null, timeLeft:null, reduced:false };
+
+// ---------- AUDIO ----------
+let audioCtx=null; function audio(){ if(!audioCtx){ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); } return audioCtx; }
+function beep(freq=440, dur=0.1, type='sine', vol=0.02){ if(!document.getElementById('soundToggle').checked) return; const ctx=audio(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(ctx.destination); g.gain.value=vol; o.start(); o.stop(ctx.currentTime+dur); }
+function boom(){ if(!document.getElementById('soundToggle').checked) return; const ctx=audio(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(120,ctx.currentTime); o.frequency.exponentialRampToValueAtTime(40,ctx.currentTime+0.5); g.gain.setValueAtTime(0.15,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.6); o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.65); }
+function heartbeat(){ if(!document.getElementById('soundToggle').checked) return; beep(90,0.07,'sine',0.03); setTimeout(()=>beep(90,0.06,'sine',0.02),140); }
+
+// ---------- DOM ----------
+const grid = document.getElementById('grid');
+const debug = document.getElementById('debug');
+
+function sizeGrid(){
+  const top = document.querySelector('.topbar').getBoundingClientRect().height;
+  const availH = window.innerHeight - top - 8; // small padding
+  const side = Math.min(window.innerWidth - 16, availH - 16);
+  const s = Math.max(320, side); // minimum visible size
+  grid.style.width = s + 'px';
+  grid.style.height = s + 'px';
+}
+
+function buildGrid(){
+  grid.innerHTML='';
+  for(let y=0;y<3;y++){
+    for(let x=0;x<3;x++){
+      const room = ROOM_LIST.find(r=>r.x===x && r.y===y);
+      const cell = document.createElement('div');
+      cell.className='cell';
+      if(!room){ cell.style.visibility='hidden'; grid.appendChild(cell); continue; }
+      cell.id='cell-'+room.id;
+      const lab=document.createElement('div'); lab.className='label'; lab.textContent=room.name; cell.appendChild(lab);
+      const ctl=document.createElement('div'); ctl.className='ctl';
+      const btn=document.createElement('button'); btn.className='btn mini'; btn.textContent='Select';
+      btn.addEventListener('click', (e)=>{ e.stopPropagation(); onCellClick(room.id,true); });
+      ctl.appendChild(btn); cell.appendChild(ctl);
+      cell.addEventListener('click', ()=>onCellClick(room.id,false));
+      grid.appendChild(cell);
+      drawCell(room.id);
+    }
+  }
+  const cells = grid.querySelectorAll('.cell:not([style*="visibility: hidden"])');
+  debug.textContent = `Grid: ${cells.length} cells`;
+  debug.classList.toggle('bad', cells.length!==8);
+}
+
+function drawCell(id){
+  const cell = document.getElementById('cell-'+id);
+  const alive = state.active.has(id);
+  cell.classList.toggle('disabled', !alive);
+  cell.classList.toggle('you', state.player===id && alive);
+  const btn = cell.querySelector('button');
+  if(!alive){ btn.disabled=true; btn.textContent='Destroyed'; return; }
+  if(state.player===null){ btn.disabled=false; btn.textContent='Hide here'; return; }
+  if(state.player===id){ btn.disabled=false; btn.textContent='Stay'; return; }
+  const adj = neighbors(state.player).map(r=>r.id);
+  if(adj.includes(id)){ btn.disabled=false; btn.textContent='Move'; }
+  else { btn.disabled=true; btn.textContent='Far'; }
+}
+
+function refreshAll(){ ROOM_LIST.forEach(r=>drawCell(r.id)); document.getElementById('timer').textContent = state.timeLeft==null?'∞':state.timeLeft; }
+
+// ---------- HELPERS ----------
+function neighbors(id){ const a=ROOM_LIST.find(r=>r.id===id); return ROOM_LIST.filter(b=>state.active.has(b.id) && ADJ(a,b)); }
+function log(msg){ const el=document.getElementById('log'); const d=document.createElement('div'); d.textContent=msg; el.appendChild(d); el.scrollTop=el.scrollHeight; }
+function notebook(msg){ const body=document.getElementById('nbBody'); body.innerHTML = msg; const nb=document.getElementById('notebook'); nb.classList.remove('hide'); clearTimeout(nb._t); nb._t=setTimeout(()=>nb.classList.add('hide'), 2500); }
+
+// ---------- TIMER ----------
+function startTimer(){ clearInterval(state.timer); const tt=DIFF[state.difficulty].turnTimer; if(!tt){ state.timeLeft=null; document.getElementById('timer').textContent='∞'; return; } state.timeLeft=tt; document.getElementById('timer').textContent=state.timeLeft; state.timer=setInterval(()=>{ state.timeLeft--; document.getElementById('timer').textContent=state.timeLeft; if(state.timeLeft<=3) { heartbeat(); document.getElementById('timerBadge').classList.add('pulse'); } if(state.timeLeft<=0){ clearInterval(state.timer); autoStay(); } },1000); }
+function autoStay(){ onCommitChoice(state.player,false,true); }
+
+// ---------- GAME FLOW ----------
+function reset(){ state.active=new Set(ROOM_LIST.map(r=>r.id)); state.player=null; state.round=1; state.movedThisTurn=false; state.weights={}; buildGrid(); sizeGrid(); refreshAll(); log('— New game —'); notebook('Pick a starting room to hide.'); startTimer(); }
+
+function onCellClick(id){
+  if(!state.active.has(id)) return;
+  if(state.player===null){ state.player=id; refreshAll(); centerAlert(`${ROOM_LIST.find(r=>r.id===id).name}: you are now hiding here.`, ()=>{ onCommitChoice(id,false,false,true); }); return; }
+  if(id===state.player){ onCommitChoice(id,false,false); return; }
+  const adj = neighbors(state.player).map(r=>r.id);
+  if(!adj.includes(id)){ notebook('You can only move to adjacent rooms.'); return; }
+  state.player=id; state.movedThisTurn=true; refreshAll(); onCommitChoice(id,true,false);
+}
+
+function onCommitChoice(dest, moved, timed){
+  clearInterval(state.timer); document.getElementById('timerBadge').classList.remove('pulse');
+  state.weights={}; state.active.forEach(id=> state.weights[id]=1);
+  if(moved) state.weights[dest]+=MOVE_HEAT*state.weights[dest];
+  const prev = moved? 'moved' : (timed?'stayed (timer)':'stayed');
+  notebook(`You ${prev} in <b>${ROOM_LIST.find(r=>r.id===dest).name}</b>. Risk slightly increased here this round.`);
+  murdererTravelAndExplode();
+}
+
+function gridCellCenter(id){ const el=document.getElementById('cell-'+id); const r=el.getBoundingClientRect(); return {x:r.left + r.width/2, y:r.top + r.height/2}; }
+
+function murdererTravelAndExplode(){
+  const m=document.getElementById('murderer'); m.style.display='grid'; m.style.left='-40px'; m.style.top='-40px';
+  const target = pickWeighted(state.weights);
+  const c=gridCellCenter(target);
+  const dur = state.reduced? 50 : 800;
+  const start = performance.now();
+  const from = {x:-40, y:-40};
+  function step(t){ const p=Math.min(1,(t-start)/dur); const ease=p*p*(3-2*p); const x=from.x + (c.x-from.x)*ease; const y=from.y + (c.y-from.y)*ease; m.style.left=x+'px'; m.style.top=y+'px'; if(p<1) requestAnimationFrame(step); else doExplode(target); }
+  requestAnimationFrame(step);
+}
+
+function pickWeighted(weights){ const entries = Object.entries(weights).filter(([k,w])=>state.active.has(k)); const sum = entries.reduce((a,[_k,w])=>a+w,0); let r = Math.random()*sum; for(const [k,w] of entries){ if((r-=w)<=0) return k; } return entries.at(-1)[0]; }
+
+function doExplode(id){ const cell=document.getElementById('cell-'+id); if(!cell) return; boom(); if(!state.reduced){ const blast=document.createElement('div'); blast.className='blast'; blast.style.setProperty('--x', (20+60*Math.random())+'%'); blast.style.setProperty('--y',(20+60*Math.random())+'%'); cell.appendChild(blast); setTimeout(()=>blast.remove(),560); cell.classList.add('boom'); setTimeout(()=>cell.classList.remove('boom'),720); } state.active.delete(id); drawCell(id); const cfg=DIFF[state.difficulty]; if(state.round>=cfg.chainStart && Math.random()<cfg.chainPct){ const adj = neighbors(id).map(r=>r.id).filter(r=>state.active.has(r)); if(adj.length){ const extra = adj[Math.floor(Math.random()*adj.length)]; doExplode(extra); log(`Chain blast hit ${ROOM_LIST.find(r=>r.id===extra).name}.`); } } centerAlert(`💥 <b>${ROOM_LIST.find(r=>r.id===id).name}</b> has been destroyed.`, ()=> resolveAfterExplosion(id)); }
+
+function resolveAfterExplosion(){ if(!state.active.has(state.player)){ gameOver(false); return; } state.round++; if(state.active.size===1){ gameOver(true); return; } startTimer(); refreshAll(); }
+
+function gameOver(win){ document.getElementById('murderer').style.display='none'; const msg = win ? 'You survived as the final room.' : 'You were caught in the blast.'; centerAlert(msg + ' Press Restart to try again.'); }
+
+// UI helpers
+function centerAlert(html, onOk){ const w=document.getElementById('centerAlert'); const m=document.getElementById('alertMsg'); m.innerHTML = html; w.classList.add('active'); const ok=document.getElementById('alertOk'); const done=()=>{ w.classList.remove('active'); ok.removeEventListener('click',done); onOk && onOk(); }; ok.addEventListener('click',done); }
+
+// Settings & Folds
+const settings=document.getElementById('settings'); document.getElementById('settingsBtn').onclick=()=>settings.classList.add('active'); document.getElementById('closeSettings').onclick=()=>{ state.difficulty=document.getElementById('difficulty').value; state.reduced=document.getElementById('reduced').checked; settings.classList.remove('active'); };
+const nbFold=document.getElementById('nbFold'); nbFold.addEventListener('click',()=>{ document.getElementById('notebook').classList.toggle('folded'); });
+const logFold=document.getElementById('logFold'); logFold.addEventListener('click',()=>{ document.getElementById('log').parentElement.classList.toggle('folded'); });
+
+document.getElementById('restart').onclick=()=>reset();
+
+// DOM ready init + resize handling
+window.addEventListener('resize', sizeGrid);
+window.addEventListener('DOMContentLoaded', ()=>{ sizeGrid(); buildGrid(); reset(); });
+</script>
+</body>
+</html>
   /* Settings modal */
   #settings{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,8,12,.55);z-index:18}
   #settings.active{display:flex}
