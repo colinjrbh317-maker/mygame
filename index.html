@@ -1,470 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>The Blackwood Incident</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Hunted: House Hideout</title>
 <style>
   :root{
-    --bg:#0d0f12;--panel:#14171b;--muted:#7b8591;--text:#e8edf3;--accent:#e87a64;--good:#4caf50;--bad:#f44336;
+    --bg:#0d0f12; --panel:#14181f; --text:#e9eef5; --muted:#9aa7b6; --accent:#e87a64;
+    --ok:#52d386; --warn:#ffd166; --bad:#ff6b6b; --line:#263043;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0;background:linear-gradient(180deg,#0b0d10,#12151a 35%,#0b0d10);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;}
-  header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #232830;background:#0b0e12;position:sticky;top:0;z-index:3}
-  header .title{font-weight:700;letter-spacing:.5px}
-  header .status{display:flex;gap:12px;align-items:center;font-size:14px;color:var(--muted)}
-  header .chip{padding:4px 8px;border:1px solid #2a313a;border-radius:999px;background:#12161b}
+  body{margin:0;background:radial-gradient(1200px 600px at 50% -200px,#10151d,#0b0f14);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);background:#0c1219;position:sticky;top:0;z-index:2}
+  header .title{font-weight:800;letter-spacing:.5px}
+  header .meta{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{background:#0f1620;border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:13px}
+  .chip strong{color:var(--text)}
 
-  main{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;height:calc(100% - 56px);padding:12px}
-  #scene{background:#0b0d10;border:1px solid #22272f;border-radius:14px;padding:16px;display:flex;flex-direction:column;}
-  #sceneCanvas{flex:1;display:flex;align-items:center;justify-content:center;border:1px dashed #262c36;border-radius:10px;background:radial-gradient(1000px 300px at 50% 120%,#0f1318 0%,#0b0d10 60%);} 
-  #sceneArt{width:100%;max-width:720px;min-height:260px;display:grid;place-items:center;color:#738196}
-  #sceneMeta{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
-  #roomName{font-weight:700;font-size:18px}
-  #nav{display:flex;flex-wrap:wrap;gap:6px}
-  .btn{background:#171b21;border:1px solid #272f3a;color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer;font-size:14px}
-  .btn:hover{border-color:#394555;background:#11151a}
-  .btn.primary{border-color:#2e3743;background:#1b2129}
-  .btn.accent{border-color:#7a473d;background:#221311;color:#ffd5cd}
+  main{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;padding:12px;height:calc(100% - 56px)}
+  #board{background:#0e141c;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column}
+  #grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:10px}
+  .cell{position:relative;border:1px solid #263043;border-radius:12px;background:linear-gradient(180deg,#101722,#0c131c);display:grid;place-items:center;overflow:hidden;cursor:pointer;transition:transform .08s ease}
+  .cell:hover{transform:translateY(-1px)}
+  .cell.disabled{opacity:.35;filter:grayscale(40%);cursor:not-allowed}
+  .cell .label{position:absolute;bottom:8px;left:8px;font-size:12px;color:#b7c5d8;background:#0d141cbb;padding:3px 6px;border-radius:6px;border:1px solid #1f2a3a}
+  .you{outline:2px solid var(--ok);box-shadow:inset 0 0 0 2px #1d2a22}
+  .target{animation:ping 0.9s ease-out 2}
+  @keyframes ping{0%{box-shadow:0 0 0 0 rgba(232,122,100,.8)}100%{box-shadow:0 0 0 18px rgba(232,122,100,0)}}
+  .boom{animation:boom .6s ease-out}
+  @keyframes boom{0%{filter:none}30%{filter:brightness(2) saturate(1.3)}60%{transform:scale(1.03);filter:contrast(1.2)}100%{filter:grayscale(60%)} }
+  .blast{position:absolute;inset:0;pointer-events:none;background:radial-gradient(200px 200px at var(--x,50%) var(--y,50%),rgba(255,120,80,.85),transparent 70%);mix-blend-mode:screen;opacity:0;animation:flash .5s ease-out}
+  @keyframes flash{0%{opacity:.95}100%{opacity:0}}
 
-  #ui{display:grid;grid-template-rows:auto 1fr auto;gap:10px;border:1px solid #22272f;border-radius:14px;padding:12px;background:var(--panel)}
-  #log{height:160px;overflow:auto;background:#0f1318;border:1px solid #222a33;border-radius:10px;padding:10px;font-size:14px}
-  #actions{display:flex;flex-wrap:wrap;gap:8px}
+  #side{display:grid;grid-template-rows:auto auto 1fr;gap:10px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  button{background:#121a25;border:1px solid #2a394d;color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
+  button.primary{background:#1a232f;border-color:#33465f}
+  button.accent{background:#231311;border-color:#6d4037;color:#ffdcd4}
+  button[disabled]{opacity:.5;cursor:not-allowed}
 
-  #inventory{display:flex;gap:8px;flex-wrap:wrap;min-height:64px;padding:8px;border:1px dashed #2d3642;border-radius:12px;background:#0f1318}
-  .item{min-width:54px;min-height:54px;display:grid;place-items:center;background:#1a2028;border:1px solid #2a3441;border-radius:10px;color:#cbd5e1;font-size:12px;cursor:grab}
-  .item:active{cursor:grabbing}
+  #log{height:200px;overflow:auto;background:#0d131b;border:1px dashed #2a3648;border-radius:10px;padding:8px;font-size:13px}
+  #items .item{padding:6px 8px;border:1px solid #344760;border-radius:8px;background:#101823;color:#cbd7ea;cursor:pointer}
+  #items .item.used{opacity:.4;cursor:not-allowed}
 
-  #notebook{height:180px;overflow:auto;border:1px dashed #2d3642;border-radius:10px;padding:8px;background:#0f1318}
-  #notebook h4{margin:6px 0 4px 0;color:#96a3b6}
-  #notebook ul{margin:0 0 8px 16px}
+  .hint{color:#a7bed6}
+  .danger{color:var(--bad)}
 
-  /* Modal */
-  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,10,.65);z-index:10}
-  .modal.active{display:flex}
-  .card{width:min(720px,92vw);background:#0f1318;border:1px solid #293240;border-radius:14px;box-shadow:0 12px 48px rgba(0,0,0,.55)}
-  .card header{position:unset;border:0;padding:14px 16px;background:#10141a;border-bottom:1px solid #242c37}
-  .card .content{padding:16px}
-
-  /* Puzzles */
-  .dropzone{width:90px;height:90px;border:2px dashed #556170;border-radius:10px;display:grid;place-items:center;margin:8px}
-  .puzzle-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  .button-grid{display:grid;grid-template-columns:repeat(4,56px);gap:8px}
-  .grid-btn{height:56px;border-radius:8px;background:#1a2028;border:1px solid #2a3441;color:#cbd5e1;cursor:pointer}
-  .grid-btn.active{outline:2px solid var(--accent)}
-
-  /* Dialogue */
-  .dialogue{background:#0f1318;border:1px solid #293240;border-radius:12px;padding:12px;max-height:45vh;overflow:auto}
-  .utter{margin:6px 0}
-  .utter .name{color:#9db0c7;font-weight:700;margin-right:6px}
-  .utter .you{color:#d6f5d6}
-  .optline{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-
-  /* Toast */
-  #toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#121820;border:1px solid #2a3340;border-radius:999px;padding:8px 14px;display:none}
-  #toast.show{display:block}
-
-  /* Responsive */
-  @media (max-width: 980px){
-    main{grid-template-columns:1fr;grid-auto-rows:auto}
-  }
+  @media(max-width: 980px){ main{grid-template-columns:1fr} #log{height:160px} }
 </style>
 </head>
 <body>
 <header>
-  <div class="title">The Blackwood Incident</div>
-  <div class="status">
-    <div class="chip">Time left: <span id="timeLeft">6:00</span></div>
-    <div class="chip">Clues: <span id="clueCount">0</span></div>
-    <div class="chip">Room: <span id="roomChip">—</span></div>
+  <div class="title">Hunted: House Hideout</div>
+  <div class="meta">
+    <div class="chip">Rooms left: <strong id="roomsLeft">8</strong></div>
+    <div class="chip">Round: <strong id="round">1</strong></div>
+    <div class="chip">Timer: <strong id="timer">—</strong></div>
+    <div class="chip">Difficulty: <strong id="diffLabel">Normal</strong></div>
+    <div class="chip">Best: <strong id="best">0</strong></div>
+    <div class="chip"><label><input type="checkbox" id="soundToggle" checked/> Sound</label></div>
   </div>
 </header>
 <main>
-  <section id="scene">
-    <div id="sceneCanvas">
-      <div id="sceneArt">(room art)</div>
+  <section id="board" class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-weight:700">House Map</div>
+      <div class="row">
+        <button id="stayBtn" class="primary">Stay</button>
+        <button id="resetBtn">Reset</button>
+      </div>
     </div>
-    <div id="sceneMeta">
-      <div id="roomName">—</div>
-      <div id="nav"></div>
-    </div>
+    <div id="grid"></div>
   </section>
 
-  <section id="ui">
-    <div id="log"></div>
-    <div id="actions"></div>
-    <div>
-      <h4 style="margin:6px 0">Inventory (drag items into puzzles)</h4>
-      <div id="inventory"></div>
-      <div id="notebook" style="margin-top:10px">
-        <h4>Notebook</h4>
-        <ul id="notes"></ul>
+  <section id="side">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div>
+          <div style="font-weight:700;margin-bottom:4px">Your Turn</div>
+          <div id="turnText" class="hint">Pick a starting room.</div>
+        </div>
+        <div class="row">
+          <select id="difficulty">
+            <option>Easy</option>
+            <option selected>Normal</option>
+            <option>Hard</option>
+          </select>
+          <button id="applyDiff">Apply</button>
+        </div>
       </div>
+      <div style="margin-top:10px">
+        <div style="font-weight:700;margin-bottom:6px">Items</div>
+        <div id="items" class="row"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="font-weight:700;margin-bottom:6px">Hints</div>
+      <div id="hints" class="hint">—</div>
+    </div>
+
+    <div class="panel">
+      <div style="font-weight:700;margin-bottom:6px">Round Log</div>
+      <div id="log"></div>
     </div>
   </section>
 </main>
 
-<div id="modal" class="modal" aria-hidden="true">
-  <div class="card" role="dialog" aria-modal="true">
-    <header>
-      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
-        <div id="modalTitle">Puzzle</div>
-        <button id="closeModal" class="btn">Close</button>
-      </div>
-    </header>
-    <div class="content" id="modalBody"></div>
-  </div>
-</div>
-
-<div id="toast">Saved.</div>
-
 <script>
-/*****************
- * GAME STATE
- *****************/
-const suspects = [
-  { id:'graves', name:'Dr. Eleanor Graves', trait:'Physician; knows chemicals/poisons', alibi:'In the library cataloging journals', motive:'Victim cut funding to her clinic', item:'Medical Vial' },
-  { id:'reed', name:'Mr. Tobias Reed', trait:'Lawyer; inheritance access', alibi:'In the study reviewing a will draft', motive:'Debt + inheritance clause', item:'Legal Ledger' },
-  { id:'clara', name:'Clara Blackwood', trait:'Widow; fragile and erratic', alibi:'In her bedroom resting', motive:'Abusive marriage rumor', item:'Blood-stained Watch' },
-  { id:'kane', name:'Victor Kane', trait:'Gardener; tools & grounds', alibi:'In the cellar checking fuse box', motive:'Victim planned to fire him', item:'Monogrammed Key' },
-  { id:'marion', name:'Marion Price', trait:'Housemaid; knows passages', alibi:'Setting the table in dining room', motive:'Threatened with dismissal', item:'Servant Ledger' }
+/*** CONFIG ***/
+const ROOM_LIST = [
+  {id:'living',   name:'Living Room',  x:0,y:0},
+  {id:'kitchen',  name:'Kitchen',      x:1,y:0},
+  {id:'bath',     name:'Bathroom',     x:2,y:0},
+  {id:'garage',   name:'Garage',       x:0,y:1},
+  /* center empty */
+  {id:'bed',      name:'Bedroom',      x:2,y:1},
+  {id:'dining',   name:'Dining',       x:0,y:2},
+  {id:'game',     name:'Game Room',    x:1,y:2},
+  {id:'patio',    name:'Outside Patio',x:2,y:2},
 ];
+const ADJ = (a,b)=> (Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1); // N/E/S/W
 
-// Random killer & method for this run
-const methods = [
-  { id:'poison', label:'Poison', hint:'Bitter almond scent, lab glass, dosage notes' },
-  { id:'blunt', label:'Blunt Force', hint:'Dented candlestick, impact traces' },
-  { id:'strangle', label:'Strangulation', hint:'Frayed cord fibers, bruising pattern' }
-];
+const DIFF = {
+  'Easy':   {turnTimer:null, chainStart:Infinity, chainPct:0},
+  'Normal': {turnTimer:12,    chainStart:4,       chainPct:0.05},
+  'Hard':   {turnTimer:8,     chainStart:3,       chainPct:0.08}
+};
+const MOVE_HEAT = 0.15; // +15% weight on destination when you move
+const HINT_TRUTH = 0.6; // 60% accurate
 
-const RNG = (seed => () => (seed = (seed * 9301 + 49297) % 233280) / 233280)(Math.floor(Math.random()*1e6));
-const pick = arr => arr[Math.floor(RNG()*arr.length)];
-const killer = pick([...suspects]);
-const method = pick([...methods]);
-
-// Rooms graph
-const rooms = {
-  hallway: {name:'Front Hallway', art:'An arched, dim corridor. Portrait eyes seem to follow you.', exits:['study','library','dining'], actions:[
-    {id:'examine_table', label:'Examine side table', fn:() => findTornNoteHalf()},
-    {id:'listen', label:'Listen…', fn:() => log("You hear distant thunder and the faint ticking of a clock.")}
-  ]},
-  study: {name:'Study', art:'Book-lined walls. A safe hangs behind a crooked painting.', exits:['hallway'], actions:[
-    {id:'safe', label:'Inspect wall safe', fn:() => openSafePuzzle()},
-    {id:'painting', label:'Adjust painting', fn:() => { log('The painting tilts, revealing faint scratch marks.'); addNote('Scratches around the safe suggest recent use.'); advanceTime(2);} }
-  ]},
-  library: {name:'Library', art:'Ladders, dust motes, and rows of medical journals.', exits:['hallway','secretpassage','attic'], locked:true, lockMsg:'A heavy chain bars the door from this side.', actions:[
-    {id:'chain', label:'Inspect chained door', fn:() => { if(!state.flags.haveBoltCutters){ log('A stout chain with a padlock. You need something to cut it.'); } else { log('You cut the chain. The library opens.'); rooms.library.locked=false; addNote('Entry chain cut open.'); } }},
-  ]},
-  dining: {name:'Dining Room', art:'A long table with name cards. One chair toppled.', exits:['hallway','kitchen'], actions:[
-    {id:'seating', label:'Examine seating chart', fn:() => openSeatingPuzzle()},
-    {id:'card', label:'Read name cards', fn:() => { log('You note mismatched place cards. Someone swapped seats.'); addNote('Place cards altered to change proximity to the victim.'); advanceTime(1);} }
-  ]},
-  kitchen: {name:'Kitchen', art:'Brass pans, a lingering bitter scent near the sink.', exits:['dining','cellar'], actions:[
-    {id:'bottles', label:'Inspect bottles', fn:() => inspectBottles()},
-    {id:'drawer', label:'Open utensil drawer', fn:() => { if(!hasItem('Bolt Cutters')) { addItem('Bolt Cutters'); addNote('Found bolt cutters in the kitchen drawer.'); log('You found Bolt Cutters.'); } else { log('Utensils clatter. Nothing new.'); } }}
-  ]},
-  cellar: {name:'Cellar', art:'Cold stone and humming electrics. A fuse panel flickers.', exits:['kitchen'], actions:[
-    {id:'panel', label:'Check fuse panel', fn:() => openFusePuzzle()},
-    {id:'footprints', label:'Look for footprints', fn:() => { log('Dusty outlines lead to a locked hatch.'); addNote('Footprints to a hatch imply a recent visit.'); advanceTime(1);} }
-  ]},
-  secretpassage: {name:'Secret Passage', art:'A narrow, dusty crawlspace behind shelves.', exits:['library','attic'], actions:[
-    {id:'scratches', label:'Examine scrape marks', fn:() => { log('Fresh scrapes: furniture was moved recently.'); addNote('Secret passage used tonight.'); advanceTime(1);} }
-  ]},
-  attic: {name:'Attic', art:'Cobwebs, trunks, and a howling draft. A final place to confront truth.', exits:['library'], actions:[
-    {id:'confront', label:'Confront a suspect', fn:() => openAccuse()},
-    {id:'trunk', label:'Search old trunk', fn:() => { if(!hasItem('Candlestick')){ addItem('Candlestick'); addNote('Heavy candlestick recovered.'); log('You take a heavy candlestick.'); } else { log('Just moth-eaten linens.'); } }}
-  ]}
+/*** STATE ***/
+let state = {
+  active: new Set(ROOM_LIST.map(r=>r.id)),
+  player: null,
+  round: 1,
+  movedThisTurn: false,
+  difficulty: 'Normal',
+  items: { Decoy:true, Scout:true, Dash:true, Vest:false },
+  weights: {},
+  timer:null,
+  timeLeft:null,
+  best: Number(localStorage.getItem('hunted_best')||0),
 };
 
-const state = {
-  room:'hallway',
-  minutes: 360, // 6 hours
-  clues:[],
-  notes:[],
-  inventory:[],
-  flags:{ haveNote:false, haveKey:false, safeOpened:false, libraryOpen:false, haveBoltCutters:false },
-  dialogueMemory:{}
-};
-
-/*****************
- * UTILITIES
- *****************/
-function log(msg){
-  const el=document.getElementById('log');
-  const line=document.createElement('div');
-  line.textContent=msg; el.appendChild(line); el.scrollTop=el.scrollHeight;
+/*** UTILS ***/
+const rand = (n)=> Math.floor(Math.random()*n);
+function pickWeighted(weights){
+  const entries = Object.entries(weights).filter(([k,w])=>state.active.has(k));
+  const sum = entries.reduce((a,[_k,w])=>a+w,0);
+  let r = Math.random()*sum;
+  for(const [k,w] of entries){ if((r-=w)<=0) return k; }
+  return entries.at(-1)[0];
 }
-function addNote(text){ if(!state.notes.includes(text)){ state.notes.push(text); renderNotes(); save(); } }
-function addClue(id,label){ if(!state.clues.find(c=>c.id===id)){ state.clues.push({id,label}); renderClues(); addNote(`Clue added: ${label}`); save(); } }
-function addItem(label){ if(!hasItem(label)){ state.inventory.push(label); renderInventory(); save(); if(label==='Bolt Cutters'){ state.flags.haveBoltCutters=true; } } }
-function hasItem(label){ return state.inventory.includes(label); }
-function advanceTime(min){ state.minutes=Math.max(0,state.minutes-min); renderHeader(); if(state.minutes===0){ gameOver('time'); } }
-function fmtTime(m){ const h=Math.floor(m/60), mm=String(m%60).padStart(2,'0'); return `${h}:${mm}`; }
-function save(){ try{ localStorage.setItem('blackwood_save', JSON.stringify({state,killer,method})); toast('Saved'); }catch(e){} }
-function load(){ try{ const d=JSON.parse(localStorage.getItem('blackwood_save')); if(!d) return; Object.assign(state, d.state); Object.assign(gameSecrets, {killer:d.killer, method:d.method}); }catch(e){} }
-function reset(){ localStorage.removeItem('blackwood_save'); location.reload(); }
-function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),900); }
+function neighbors(id){ const a=ROOM_LIST.find(r=>r.id===id); return ROOM_LIST.filter(b=>state.active.has(b.id) && ADJ(a,b)); }
+function log(msg){ const el=document.getElementById('log'); const d=document.createElement('div'); d.textContent=msg; el.appendChild(d); el.scrollTop=el.scrollHeight; }
+function setHints(text){ document.getElementById('hints').textContent=text; }
+function setTurn(t){ document.getElementById('turnText').textContent=t; }
 
-const gameSecrets = {killer, method};
+/*** AUDIO (WebAudio) ***/
+let audioCtx=null; function audio(){ if(!audioCtx){ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); } return audioCtx; }
+function beep(freq=440, dur=0.1, type='sine', vol=0.02){ if(!document.getElementById('soundToggle').checked) return; const ctx=audio(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(ctx.destination); g.gain.value=vol; o.start(); o.stop(ctx.currentTime+dur); }
+function boom(){ if(!document.getElementById('soundToggle').checked) return; const ctx=audio(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(120,ctx.currentTime); o.frequency.exponentialRampToValueAtTime(40,ctx.currentTime+0.5); g.gain.setValueAtTime(0.15,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.6); o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.65); }
+function heartbeat(){ if(!document.getElementById('soundToggle').checked) return; beep(90,0.07,'sine',0.03); setTimeout(()=>beep(90,0.06,'sine',0.02),140); }
 
-/*****************
- * RENDERING
- *****************/
-function render(){
-  const r=rooms[state.room];
-  document.getElementById('roomName').textContent=r.name;
-  document.getElementById('roomChip').textContent=r.name;
-  document.getElementById('sceneArt').textContent=r.art;
-  // nav
-  const nav=document.getElementById('nav'); nav.innerHTML='';
-  r.exits.forEach(e=>{
-    const dest=rooms[e];
-    const btn=document.createElement('button');
-    btn.className='btn';
-    btn.textContent=dest.name;
-    btn.onclick=()=>{
-      if(dest.locked){ log(dest.lockMsg||'Locked.'); return; }
-      state.room=e; render(); advanceTime(5);
-    };
-    nav.appendChild(btn);
-  });
-  // actions
-  const actions=document.getElementById('actions'); actions.innerHTML='';
-  r.actions.forEach(a=>{
-    const b=document.createElement('button');
-    b.className='btn primary'; b.textContent=a.label; b.onclick=a.fn; actions.appendChild(b);
-  });
-}
-function renderHeader(){
-  document.getElementById('timeLeft').textContent=fmtTime(state.minutes);
-  renderClues();
-}
-function renderClues(){ document.getElementById('clueCount').textContent=state.clues.length; }
-function renderNotes(){ const ul=document.getElementById('notes'); ul.innerHTML=''; state.notes.forEach(n=>{ const li=document.createElement('li'); li.textContent=n; ul.appendChild(li); }); }
-function renderInventory(){
-  const inv=document.getElementById('inventory'); inv.innerHTML='';
-  state.inventory.forEach((name,i)=>{
-    const it=document.createElement('div'); it.className='item'; it.textContent=name; it.draggable=true; it.dataset.item=name;
-    it.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain', name); });
-    inv.appendChild(it);
-  });
-}
-
-/*****************
- * PUZZLES
- *****************/
-function openModal(title, bodyBuilder){
-  document.getElementById('modalTitle').textContent=title;
-  const body=document.getElementById('modalBody'); body.innerHTML='';
-  bodyBuilder(body);
-  const modal=document.getElementById('modal'); modal.classList.add('active'); modal.setAttribute('aria-hidden','false');
-}
-function closeModal(){ const modal=document.getElementById('modal'); modal.classList.remove('active'); modal.setAttribute('aria-hidden','true'); }
-
-document.getElementById('closeModal').onclick=closeModal;
-
-// Study Safe: requires Torn Note Half dropped into slot, then enter 3-symbol code
-function openSafePuzzle(){
-  openModal('Wall Safe', body=>{
-    const p=document.createElement('p'); p.textContent='A thin slot and a 3-symbol dial. Drag the Torn Note Half into the slot, then set the code.'; body.appendChild(p);
-    const row=document.createElement('div'); row.className='puzzle-row'; body.appendChild(row);
-
-    const dz=document.createElement('div'); dz.className='dropzone'; dz.textContent='Slot'; dz.addEventListener('dragover',e=>e.preventDefault());
-    dz.addEventListener('drop', e=>{
-      e.preventDefault(); const item=e.dataTransfer.getData('text/plain');
-      if(item==='Torn Note Half'){ dz.textContent='Inserted'; dz.style.borderColor='var(--good)'; dz.dataset.inserted='1'; addNote('Inserted the torn note half into the safe.'); }
-      else toast('That doesn\'t fit.');
-    });
-    row.appendChild(dz);
-
-    const codeRow=document.createElement('div'); codeRow.className='puzzle-row'; body.appendChild(codeRow);
-    const choices=['♦','●','■','▲','★'];
-    const secret = ['●','★','■']; // static hint; could randomize & hint via library
-    const selects=[];
-    for(let i=0;i<3;i++){
-      const sel=document.createElement('select');
-      choices.forEach(ch=>{ const o=document.createElement('option'); o.value=ch; o.textContent=ch; sel.appendChild(o); });
-      codeRow.appendChild(sel); selects.push(sel);
+/*** DOM ***/
+const grid = document.getElementById('grid');
+function buildGrid(){
+  grid.innerHTML='';
+  // 3x3 grid with center hole
+  for(let y=0;y<3;y++){
+    for(let x=0;x<3;x++){
+      const room = ROOM_LIST.find(r=>r.x===x && r.y===y);
+      const cell = document.createElement('div');
+      cell.className='cell';
+      if(!room){ cell.style.visibility='hidden'; grid.appendChild(cell); continue; }
+      cell.id='cell-'+room.id;
+      cell.addEventListener('click',()=>onCellClick(room.id));
+      const lab=document.createElement('div'); lab.className='label'; lab.textContent=room.name; cell.appendChild(lab);
+      grid.appendChild(cell);
+      drawCell(room.id);
     }
-    const go=document.createElement('button'); go.className='btn accent'; go.textContent='Unlock';
-    go.onclick=()=>{
-      const ok = dz.dataset.inserted==='1' && selects[0].value===secret[0] && selects[1].value===secret[1] && selects[2].value===secret[2];
-      if(ok){
-        closeModal();
-        if(!state.flags.safeOpened){ state.flags.safeOpened=true; addItem('Blood-stained Watch'); addClue('watch','Blood-stained Watch from the safe'); addNote('Safe opened; watch recovered.'); log('Inside you find a Blood-stained Watch and scattered documents.'); advanceTime(8); }
-      } else { toast('Something\'s wrong. Do you have the note?'); }
-    };
-    body.appendChild(go);
-  });
-}
-
-// Dining seating puzzle: toggle buttons to match correct seating order hint
-function openSeatingPuzzle(){
-  openModal('Seating Chart', body=>{
-    const p=document.createElement('p'); p.textContent='Four seats near the victim were swapped. Arrange the initials (C, G, R, M) to match the hint: "The widow refused to sit by the doctor; the lawyer sat opposite the maid."'; body.appendChild(p);
-    const grid=document.createElement('div'); grid.className='button-grid'; body.appendChild(grid);
-    const initials=['C','G','R','M'];
-    const slots = new Array(4).fill(null).map((_,i)=>{
-      const b=document.createElement('button'); b.className='grid-btn'; b.textContent='—'; b.dataset.index=i; grid.appendChild(b); return b;
-    });
-    const picker=document.createElement('div'); picker.className='optline'; body.appendChild(picker);
-    initials.forEach(ch=>{
-      const b=document.createElement('button'); b.className='btn'; b.textContent=ch; b.onclick=()=>{ const empty=slots.find(s=>s.textContent==='—'); if(empty){ empty.textContent=ch; b.disabled=true; } }; picker.appendChild(b);
-    });
-    const reset=document.createElement('button'); reset.className='btn'; reset.textContent='Reset'; reset.onclick=()=>{ slots.forEach(s=>s.textContent='—'); [...picker.children].forEach(c=>c.disabled=false); }; body.appendChild(reset);
-    const okBtn=document.createElement('button'); okBtn.className='btn accent'; okBtn.textContent='Confirm'; okBtn.onclick=()=>{
-      const guess=slots.map(s=>s.textContent).join('');
-      const correct='RMCG'; // example solution satisfying the hint
-      if(guess===correct){ closeModal(); addClue('seating','Correct seating pattern near victim'); addNote('Seating shows someone engineered proximity.'); log('You decode the seating: someone moved cards to sit closer.'); advanceTime(6); }
-      else toast('That arrangement violates the hint.');
-    }; body.appendChild(okBtn);
-  });
-}
-
-// Kitchen poison identification
-function inspectBottles(){
-  openModal('Bottle Rack', body=>{
-    const p=document.createElement('p'); p.textContent='Several brown bottles. One smells faintly of bitter almond.'; body.appendChild(p);
-    const list=document.createElement('div'); list.className='optline'; body.appendChild(list);
-    const opts=['Vanilla Extract','Cleaning Ammonia','Cyanide Tincture','Vinegar'];
-    opts.forEach(o=>{
-      const b=document.createElement('button'); b.className='btn'; b.textContent=o; b.onclick=()=>{
-        if(o==='Cyanide Tincture'){
-          addClue('poison','Traces of cyanide present in kitchen');
-          addItem('Medical Vial');
-          addNote('Found a vial with traces consistent with cyanide.');
-          log('You carefully bag a Medical Vial with cyanide traces.');
-          closeModal(); advanceTime(5);
-        } else { toast('That doesn\'t match the almond scent.'); }
-      }; list.appendChild(b);
-    });
-  });
-}
-
-// Cellar fuse sequence puzzle
-function openFusePuzzle(){
-  openModal('Fuse Panel', body=>{
-    const p=document.createElement('p'); p.textContent='Restore power by flipping the correct 5-switch sequence. Hint found in notes: odd-even pattern ending with main.'; body.appendChild(p);
-    const row=document.createElement('div'); row.className='button-grid'; body.appendChild(row);
-    const switches=[1,2,3,4,5].map(i=>{
-      const b=document.createElement('button'); b.className='grid-btn'; b.textContent='S'+i; b.dataset.on='0'; b.onclick=()=>{ b.dataset.on=b.dataset.on==='0'?'1':'0'; b.classList.toggle('active'); };
-      row.appendChild(b); return b;
-    });
-    const go=document.createElement('button'); go.className='btn accent'; go.textContent='Apply'; go.onclick=()=>{
-      const pattern=switches.map((b,i)=>b.dataset.on==='1'?i+1:null).filter(Boolean).join('');
-      const correct='13545'; // odd-even pattern, repeats 5 as main
-      if(pattern===correct){ addClue('power','Fuse pattern restored; someone tampered earlier'); addNote('Fuses were intentionally tripped.'); log('Power stabilizes. The cellar hum evens out.'); closeModal(); advanceTime(4); }
-      else toast('Wrong order. Try the odd-even hint.');
-    }; body.appendChild(go);
-  });
-}
-
-/*****************
- * DISCOVERY & SETUP
- *****************/
-function findTornNoteHalf(){
-  if(!state.flags.haveNote){
-    state.flags.haveNote=true; addItem('Torn Note Half'); addNote('Recovered a torn note half from the hallway table.'); log('You pocket the Torn Note Half.'); advanceTime(2);
-  } else if(!rooms.library.locked && !state.flags.haveKey){
-    state.flags.haveKey=true; addItem('Monogrammed Key'); addNote('Found a Monogrammed Key taped under the drawer.'); log('A key with initials falls from the underside of the drawer.'); advanceTime(1);
-  } else {
-    log('Nothing else on the table.');
   }
 }
+function drawCell(id){
+  const cell = document.getElementById('cell-'+id);
+  const alive = state.active.has(id);
+  cell.classList.toggle('disabled', !alive);
+  cell.classList.toggle('you', state.player===id && alive);
+}
+function refreshAll(){ ROOM_LIST.forEach(r=>drawCell(r.id)); document.getElementById('roomsLeft').textContent=state.active.size; document.getElementById('round').textContent=state.round; document.getElementById('diffLabel').textContent=state.difficulty; document.getElementById('best').textContent=state.best; }
 
-/*****************
- * DIALOGUE & ACCUSATION
- *****************/
-function openAccuse(){
-  openModal('Final Accusation', body=>{
-    const p=document.createElement('p'); p.textContent='Choose a suspect and present your core evidence. If you are wrong, the night will end badly.'; body.appendChild(p);
+/*** TIMER ***/
+function startTimer(){ clearInterval(state.timer); const tt=DIFF[state.difficulty].turnTimer; document.getElementById('timer').textContent = tt?tt:'∞'; if(!tt){ state.timeLeft=null; return; } state.timeLeft=tt; document.getElementById('timer').textContent=state.timeLeft; state.timer=setInterval(()=>{ state.timeLeft--; document.getElementById('timer').textContent=state.timeLeft; if(state.timeLeft<=3) heartbeat(); if(state.timeLeft<=0){ clearInterval(state.timer); autoStay(); } },1000); }
+function autoStay(){ setTurn('Time up — you stayed.'); resolvePlayerChoice(state.player,false); }
 
-    const whoSel=document.createElement('select'); suspects.forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; whoSel.appendChild(o); }); body.appendChild(whoSel);
+/*** GAME FLOW ***/
+function reset(){ state.active=new Set(ROOM_LIST.map(r=>r.id)); state.player=null; state.round=1; state.movedThisTurn=false; state.items={Decoy:true,Scout:true,Dash:true,Vest:false}; state.weights={}; setHints('—'); document.getElementById('items').innerHTML=''; buildItems(); buildGrid(); refreshAll(); setTurn('Pick a starting room.'); startTimer(); log('— New game —'); }
 
-    const evidenceSel=document.createElement('select'); const evOpts=state.clues.map(c=>c.label); evOpts.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; evidenceSel.appendChild(o); }); if(evOpts.length===0){ const o=document.createElement('option'); o.value='none'; o.textContent='(no evidence)'; evidenceSel.appendChild(o); } body.appendChild(evidenceSel);
+function onCellClick(id){
+  if(!state.active.has(id)) return;
+  if(state.player===null){ state.player=id; setTurn('Stay or move to an adjacent room. Use an item if needed.'); refreshAll(); return; }
+  // movement phase
+  const adj = neighbors(state.player).map(r=>r.id);
+  if(!adj.includes(id)){ setTurn('You can only move to adjacent rooms.'); return; }
+  state.player=id; state.movedThisTurn=true; refreshAll(); setTurn(`Moved to ${ROOM_LIST.find(r=>r.id===id).name}. Choose Stay or end turn.`); }
 
-    const go=document.createElement('button'); go.className='btn accent'; go.textContent='Accuse'; go.onclick=()=>{
-      const who=whoSel.value; const ev=evidenceSel.value;
-      resolveAccusation(who, ev);
-    }; body.appendChild(go);
+document.getElementById('stayBtn').onclick=()=>{ if(state.player===null) { setTurn('Pick a starting room first.'); return; } resolvePlayerChoice(state.player, state.movedThisTurn); };
 
-    const hint=document.createElement('div'); hint.style.marginTop='10px'; hint.style.color='#9db0c7';
-    hint.textContent=`Method this run left signs of: ${gameSecrets.method.hint}`; body.appendChild(hint);
-  });
+document.getElementById('resetBtn').onclick=reset;
+
+document.getElementById('applyDiff').onclick=()=>{ state.difficulty=document.getElementById('difficulty').value; startTimer(); refreshAll(); };
+
+function resolvePlayerChoice(dest, moved){ clearInterval(state.timer); // compute weights
+  state.weights={}; state.active.forEach(id=> state.weights[id]=1);
+  if(moved) state.weights[dest]+=MOVE_HEAT*state.weights[dest];
+  // Scout item effect: if used this round, we already showed; otherwise generate hints
+  genHints();
+  // Murderer selects target
+  const target = pickWeighted(state.weights);
+  explode(target);
+  // Chain chance
+  const cfg=DIFF[state.difficulty];
+  if(state.round>=cfg.chainStart && Math.random()<cfg.chainPct){
+    const adj = neighbors(target).map(r=>r.id).filter(id=>id!==target && state.active.has(id));
+    if(adj.length){ const extra = adj[rand(adj.length)]; explode(extra, true); log(`Chain blast spread to ${ROOM_LIST.find(r=>r.id===extra).name}.`); }
+  }
+
+  // Check loss
+  if(!state.active.has(state.player)){
+    if(state.items.Vest){ state.items.Vest=false; document.querySelector('[data-item="Vest"]').classList.add('used'); log('Your Vest absorbed the blast. You stumble to an adjacent room.'); // auto-move to any alive neighbor
+      const opts = neighbors(target).map(r=>r.id).filter(id=>state.active.has(id));
+      if(opts.length){ state.player=opts[rand(opts.length)]; }
+      else { // pick any alive room
+        const alive=[...state.active]; state.player=alive[rand(alive.length)]; }
+    } else { return gameOver(false); }
+  }
+
+  // Next round setup
+  state.round++; state.movedThisTurn=false; refreshAll();
+  if(state.active.size===1){ return gameOver(true); }
+  setTurn('Your move. Stay or move to an adjacent room.'); startTimer(); }
+
+function explode(id, silent){
+  const cell=document.getElementById('cell-'+id); if(!cell) return;
+  cell.classList.add('boom'); const blast=document.createElement('div'); blast.className='blast'; blast.style.setProperty('--x', (20+60*Math.random())+'%'); blast.style.setProperty('--y',(20+60*Math.random())+'%'); cell.appendChild(blast); setTimeout(()=>blast.remove(),520);
+  if(!silent) { const n=ROOM_LIST.find(r=>r.id===id).name; log(`Bomb hit ${n}.`); }
+  boom();
+  state.active.delete(id); drawCell(id); document.getElementById('roomsLeft').textContent=state.active.size;
 }
 
-function resolveAccusation(who, evidence){
-  closeModal();
-  const correctSuspect = who===gameSecrets.killer.id;
-  const evidenceScore = scoreEvidence();
-  if(correctSuspect && evidenceScore>=3){ winEnding('true'); }
-  else if(correctSuspect){ winEnding('partial'); }
-  else { loseEnding('wrong'); }
+function gameOver(win){
+  clearInterval(state.timer);
+  if(win){ log('You survived as the last room standing.'); setTurn('You win!'); document.getElementById('timer').textContent='—'; const score=state.round; if(score>state.best){ state.best=score; localStorage.setItem('hunted_best',String(score)); } refreshAll(); }
+  else { log('You were caught in the blast.'); setTurn('You lose. Press Reset to try again.'); document.getElementById('timer').textContent='—'; }
 }
 
-function scoreEvidence(){
-  let s=0;
-  // Simple scoring model: method-specific and suspect-item-specific clues
-  const havePoison = state.clues.some(c=>c.id==='poison');
-  if(gameSecrets.method.id==='poison' && havePoison) s++;
-  if(state.flags.safeOpened) s++;
-  if(state.clues.some(c=>c.id==='seating')) s++;
-  if(state.clues.some(c=>c.id==='power')) s++;
-  if(hasItem('Monogrammed Key')) s++;
-  if(hasItem('Medical Vial')) s++;
-  if(hasItem('Candlestick') && gameSecrets.method.id==='blunt') s++;
-  return s;
+/*** HINTS & ITEMS ***/
+function genHints(){
+  // compute two suggested rooms: usually highest weights
+  const entries = Object.entries(state.weights).filter(([id,_])=>state.active.has(id));
+  entries.sort((a,b)=>b[1]-a[1]);
+  const truthRooms = entries.slice(0,2).map(([id])=>id);
+  const allAlive=[...state.active];
+  const maybe = [];
+  for(const id of truthRooms){ maybe.push(Math.random()<HINT_TRUTH? id : allAlive[rand(allAlive.length)]); }
+  const names = maybe.map(id=>ROOM_LIST.find(r=>r.id===id).name);
+  setHints(`Fresh trails near: ${names.join(' & ')}`);
 }
 
-function winEnding(type){
-  const t = type==='true' ? 'TRUE ENDING' : 'PARTIAL JUSTICE';
-  openModal(t, body=>{
-    const h=document.createElement('h3'); h.textContent = type==='true' ? 'You solved the Blackwood Incident.' : 'You caught the killer, but some questions remain.'; body.appendChild(h);
-    const p=document.createElement('p'); p.innerHTML = `Killer: <b>${gameSecrets.killer.name}</b><br>Method: <b>${gameSecrets.method.label}</b>`; body.appendChild(p);
-    const again=document.createElement('button'); again.className='btn'; again.textContent='Play Again (new killer)'; again.onclick=()=>reset(); body.appendChild(again);
-  });
+function buildItems(){
+  const wrap=document.getElementById('items');
+  const item = (name, desc, fn)=>{
+    const el=document.createElement('div'); el.className='item'; el.textContent=name; el.title=desc; el.dataset.item=name; el.onclick=()=>{ if(el.classList.contains('used')) return; fn(el); };
+    wrap.appendChild(el);
+  };
+  item('Decoy','Place on a room. If bombed this round, room survives and decoy breaks.', (el)=> useDecoy(el));
+  item('Scout','Reveal two most likely targets BEFORE you move this round.', (el)=> useScout(el));
+  item('Dash','Move two steps this turn (second step ignores adjacency).', (el)=> useDash(el));
+  item('Vest','Survive one explosion.', (el)=>{ state.items.Vest=true; el.classList.add('used'); log('You put on a protective vest.'); });
 }
 
-function loseEnding(reason){
-  openModal('BAD ENDING', body=>{
-    const p=document.createElement('p'); p.textContent = reason==='time' ? 'Dawn breaks and the police arrive, but the killer slips away into the storm.' : 'Your accusation shatters. A cold smile tells you you were wrong.'; body.appendChild(p);
-    const reveal=document.createElement('p'); reveal.innerHTML = `The killer was <b>${gameSecrets.killer.name}</b>; method: <b>${gameSecrets.method.label}</b>.`; body.appendChild(reveal);
-    const again=document.createElement('button'); again.className='btn'; again.textContent='Try Again'; again.onclick=()=>reset(); body.appendChild(again);
-  });
-}
+let decoyRoom=null; let dashed=false; let scouted=false;
+function useDecoy(el){ if(decoyRoom){ log('Decoy already placed.'); return; } chooseRoom('Place Decoy on which room?', (id)=>{ if(!state.active.has(id)) return; decoyRoom=id; el.classList.add('used'); log(`Decoy placed in ${ROOM_LIST.find(r=>r.id=id).name}.`); }); }
+function useScout(el){ if(scouted){ log('Scout already used this round.'); return; } // show hints immediately
+  scouted=true; el.classList.add('used'); const entries = Object.entries(state.weights).filter(([id,_])=>state.active.has(id)); entries.sort((a,b)=>b[1]-a[1]); const names = entries.slice(0,2).map(([id])=>ROOM_LIST.find(r=>r.id===id).name); setHints(`Scout reports: ${names.join(' & ')}`); log('Scout used.'); }
+function useDash(el){ if(dashed) return; dashed=true; el.classList.add('used'); setTurn('Dash active: click any room to relocate (ignores adjacency for this move). Then press Stay.'); const origHandler=onCellClick; onCellClick=(id)=>{ if(!state.active.has(id)) return; state.player=id; state.movedThisTurn=true; refreshAll(); setTurn(`Dashed to ${ROOM_LIST.find(r=>r.id===id).name}. Press Stay to end turn.`); onCellClick=origHandler; } }
 
-function gameOver(kind){
-  loseEnding(kind);
-}
+function chooseRoom(promptText, cb){ setTurn(promptText); const origHandler=onCellClick; onCellClick=(id)=>{ cb(id); onCellClick=origHandler; setTurn('Action chosen. Finish your turn.'); } }
 
-/*****************
- * INIT
- *****************/
-function firstTimeSetup(){
-  // Lock library initially; can be opened via bolt cutters
-  rooms.library.locked = true;
-  // Place a hint to open library once bolt cutters obtained
-  addNote('A chain bars the library. Perhaps something in the kitchen can cut it.');
-}
+// Decoy effect hook: if target equals decoy, cancel destruction
+const _explode=explode; explode=(id, silent)=>{
+  if(decoyRoom===id){ log('Decoy absorbed the blast! Room stands.'); boom(); decoyRoom=null; return; }
+  _explode(id, silent);
+  decoyRoom=null; dashed=false; scouted=false; // reset per round
+};
 
-function attachGlobalShortcuts(){
-  window.addEventListener('keydown', (e)=>{
-    if(e.key==='s' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); save(); }
-    if(e.key==='Escape'){ const m=document.getElementById('modal'); if(m.classList.contains('active')) closeModal(); }
-  });
-}
-
-(function start(){
-  firstTimeSetup();
-  renderHeader();
-  render();
-  renderInventory();
-  renderNotes();
-  attachGlobalShortcuts();
-  log('You arrive at Blackwood Manor as a storm rages outside. The host is dead. You have until dawn.');
-  log(`There are ${suspects.length} suspects. Gather clues and confront the killer in the attic.`);
+/*** AESTHETIC: optional PNGs per room ***/
+// Put PNGs at /assets/<id>.png (e.g., assets/living.png). We will set them as CSS backgrounds if found.
+(async function preloadPNGs(){
+  for(const r of ROOM_LIST){ try{ const res=await fetch(`assets/${r.id}.png`,{method:'HEAD'}); if(res.ok){ const cell=document.getElementById('cell-'+r.id); if(cell) cell.style.backgroundImage=`url(assets/${r.id}.png)`; cell && (cell.style.backgroundSize='cover'); } }catch(_){} }
 })();
+
+/*** INIT ***/
+buildGrid(); buildItems(); refreshAll(); reset();
 </script>
 </body>
 </html>
